@@ -1,0 +1,12 @@
+{
+  "name": "chainkeep-backend",
+  "version": "1.0.0",
+  "description": "Backend API for Chainkeep habit tracker (pure Node.js, no frameworks)",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {}
+}
