@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chainkeep — habit tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div class="wrap">
+    <header class="app-header">
+      <div class="brand">
+        <span class="brand-mark">⛓</span>
+        <div>
+          <h1>Chainkeep</h1>
+          <p class="tagline">Don't break the chain.</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="themeToggleBtn" class="icon-btn theme-btn" title="Toggle theme">🌙</button>
+        <button id="newHabitBtn" class="btn btn-primary">+ New habit</button>
+      </div>
+    </header>
+
+    <!-- Dashboard -->
+    <section id="dashboard" class="dashboard hidden">
+      <div class="stat-card">
+        <span class="stat-value" id="statTotal">0</span>
+        <span class="stat-label">Habits</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value" id="statToday">0%</span>
+        <span class="stat-label">Today's rate</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value" id="statBest">0</span>
+        <span class="stat-label">Best streak</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value" id="statCategories">0</span>
+        <span class="stat-label">Categories</span>
+      </div>
+      <div class="stat-chart-card">
+        <span class="stat-chart-label">Last 7 days</span>
+        <div id="weekChart" class="week-chart"></div>
+      </div>
+    </section>
+
+    <!-- Toolbar: search / filter / sort -->
+    <section id="toolbar" class="toolbar hidden">
+      <input type="search" id="searchInput" class="toolbar-input" placeholder="Search habits…" />
+      <select id="categoryFilter" class="toolbar-select">
+        <option value="">All categories</option>
+      </select>
+      <select id="sortSelect" class="toolbar-select">
+        <option value="newest">Newest first</option>
+        <option value="name">Name (A–Z)</option>
+        <option value="streak">Current streak</option>
+        <option value="best">Best streak</option>
+      </select>
+    </section>
+
+    <section id="emptyState" class="empty-state hidden">
+      <p class="empty-glyph">○ ○ ○</p>
+      <h2>No habits yet</h2>
+      <p>Add one below and start building your first chain.</p>
+    </section>
+
+    <section id="noResults" class="empty-state hidden">
+      <p class="empty-glyph">— — —</p>
+      <h2>No matches</h2>
+      <p>Try a different search or filter.</p>
+    </section>
+
+    <section id="habitList" class="habit-list"></section>
+  </div>
+
+  <!-- Habit create/edit modal -->
+  <div id="habitModal" class="modal-backdrop hidden">
+    <form id="habitForm" class="modal">
+      <h2 id="modalTitle">New habit</h2>
+
+      <label class="field">
+        <span>Name</span>
+        <input type="text" id="habitName" maxlength="80" placeholder="e.g. Read 10 pages" required />
+      </label>
+
+      <label class="field">
+        <span>Description <em>(optional)</em></span>
+        <textarea id="habitDescription" maxlength="300" rows="2" placeholder="Any details that keep you honest"></textarea>
+      </label>
+
+      <div class="field-row">
+        <label class="field">
+          <span>Category</span>
+          <input type="text" id="habitCategory" list="categoryOptions" maxlength="40" placeholder="e.g. Health" />
+          <datalist id="categoryOptions">
+            <option value="Health"></option>
+            <option value="Study"></option>
+            <option value="Fitness"></option>
+            <option value="Finance"></option>
+            <option value="Mindfulness"></option>
+            <option value="Work"></option>
+            <option value="General"></option>
+          </datalist>
+        </label>
+
+        <label class="field">
+          <span>Frequency</span>
+          <select id="habitFrequency">
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="field-row">
+        <label class="field">
+          <span>Type</span>
+          <select id="habitType">
+            <option value="boolean">Yes / No</option>
+            <option value="counter">Counter (e.g. glasses, pages)</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Color</span>
+          <input type="color" id="habitColor" value="#d9a441" />
+        </label>
+      </div>
+
+      <div class="field-row" id="counterFields">
+        <label class="field">
+          <span>Daily target</span>
+          <input type="number" id="habitTarget" min="1" step="1" value="8" />
+        </label>
+        <label class="field">
+          <span>Unit <em>(optional)</em></span>
+          <input type="text" id="habitUnit" maxlength="20" placeholder="e.g. glasses" />
+        </label>
+      </div>
+
+      <input type="hidden" id="habitId" />
+
+      <div class="modal-actions">
+        <button type="button" id="cancelBtn" class="btn btn-ghost">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save habit</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Day detail modal: log completion, count, and note for a single day -->
+  <div id="dayModal" class="modal-backdrop hidden">
+    <form id="dayForm" class="modal">
+      <h2 id="dayModalTitle">Log day</h2>
+      <p id="dayModalDate" class="day-modal-date"></p>
+
+      <label class="field day-toggle-field">
+        <span>Completed</span>
+        <input type="checkbox" id="dayDone" />
+      </label>
+
+      <label class="field" id="dayCounterField">
+        <span>Amount <em id="dayCounterUnit"></em></span>
+        <div class="stepper">
+          <button type="button" id="dayCounterMinus" class="stepper-btn">−</button>
+          <input type="number" id="dayCounterValue" min="0" step="1" value="0" />
+          <button type="button" id="dayCounterPlus" class="stepper-btn">+</button>
+        </div>
+      </label>
+
+      <label class="field">
+        <span>Note <em>(optional)</em></span>
+        <textarea id="dayNote" maxlength="500" rows="3" placeholder="How did it go?"></textarea>
+      </label>
+
+      <input type="hidden" id="dayHabitId" />
+      <input type="hidden" id="dayDate" />
+
+      <div class="modal-actions">
+        <button type="button" id="dayCancelBtn" class="btn btn-ghost">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Habit card template -->
+  <template id="habitCardTemplate">
+    <article class="habit-card">
+      <div class="habit-card-top">
+        <div class="habit-title-block">
+          <span class="link-dot"></span>
+          <div>
+            <h3 class="habit-name"></h3>
+            <div class="habit-meta">
+              <span class="category-badge"></span>
+              <span class="type-badge"></span>
+            </div>
+          </div>
+        </div>
+        <div class="habit-menu">
+          <button class="icon-btn month-btn" title="Month view">📅</button>
+          <button class="icon-btn edit-btn" title="Edit habit">✎</button>
+          <button class="icon-btn delete-btn" title="Delete habit">✕</button>
+        </div>
+      </div>
+      <p class="habit-description"></p>
+
+      <div class="chain-row"></div>
+
+      <div class="month-view hidden">
+        <div class="month-nav">
+          <button type="button" class="icon-btn month-prev">‹</button>
+          <span class="month-label"></span>
+          <button type="button" class="icon-btn month-next">›</button>
+        </div>
+        <div class="month-grid"></div>
+      </div>
+
+      <div class="habit-footer">
+        <div class="streak-count">
+          <span class="streak-number">0</span>
+          <span class="streak-label">day streak</span>
+        </div>
+        <div class="best-count">
+          <span class="best-number">0</span>
+          <span class="best-label">best streak</span>
+        </div>
+        <div class="rate-count">
+          <span class="rate-number">0%</span>
+          <span class="rate-label">completion</span>
+        </div>
+      </div>
+    </article>
+  </template>
+
+  <script src="script.js"></script>
+</body>
+</html>
